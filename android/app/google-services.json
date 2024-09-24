@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "60102061969",
+    "firebase_url": "https://kpopmerchapplication-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "kpopmerchapplication",
+    "storage_bucket": "kpopmerchapplication.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:60102061969:android:a8efe034efa7e6350d7430",
+        "android_client_info": {
+          "package_name": "com.example.kpopmerchapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRS4K3wlv927yhtgy9WzzV-W6trUsiqCY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
