@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kpopmerchapplication/controllers/auth_controller.dart';
+import 'package:kpopmerchapplication/presentation/controllers/auth_controller.dart';
 
 class RegisterRolePage extends StatelessWidget {
   final AuthController authController = Get.find<AuthController>();
@@ -10,7 +10,7 @@ class RegisterRolePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register - Step 4')),
+      appBar: AppBar(title: const Text('Register - Step 3')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

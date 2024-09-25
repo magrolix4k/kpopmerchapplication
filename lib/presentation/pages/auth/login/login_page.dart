@@ -2,12 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../controllers/auth_controller.dart';
+import '../../../controllers/auth_controller.dart';
 
 class LoginPage extends StatelessWidget {
   final AuthController authController = Get.find<AuthController>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +30,8 @@ class LoginPage extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
                 onPressed: () {
-                  authController.login(
-                      emailController.text, passwordController.text);
+                  // authController.login(
+                  //     emailController.text, passwordController.text);
                 },
                 child: const Text('Login')),
             TextButton(

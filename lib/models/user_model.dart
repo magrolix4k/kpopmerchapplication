@@ -9,8 +9,13 @@ class UserModel {
   final String role;
   final String status;
   final DateTime? lastLoginAt;
+  final DateTime? createAt;
+  final int? followers;
+  final int? following;
 
   UserModel({
+    this.followers,
+    this.following,
     required this.uid,
     required this.email,
     this.name,
@@ -21,6 +26,7 @@ class UserModel {
     this.role = 'user',
     this.status = 'active',
     this.lastLoginAt,
+    this.createAt,
   });
 
   // สร้างจาก JSON
@@ -36,6 +42,9 @@ class UserModel {
       role: json['role'],
       status: json['status'],
       lastLoginAt: json['last_login_at'] != null
+          ? DateTime.parse(json['last_login_at'])
+          : null,
+      createAt: json['last_login_at'] != null
           ? DateTime.parse(json['last_login_at'])
           : null,
     );
@@ -54,6 +63,7 @@ class UserModel {
       'role': role,
       'status': status,
       'last_login_at': lastLoginAt?.toIso8601String(),
+      'craetaAt': createAt?.toIso8601String(),
     };
   }
 }

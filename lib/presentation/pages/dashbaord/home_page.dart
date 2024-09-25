@@ -1,7 +1,8 @@
 import 'dart:async'; // นำเข้า Timer
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kpopmerchapplication/controllers/auth_controller.dart';
+import 'package:kpopmerchapplication/presentation/controllers/auth_controller.dart';
 import 'package:kpopmerchapplication/models/user_model.dart';
 import 'package:kpopmerchapplication/services/api_service.dart';
 
@@ -15,26 +16,23 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final AuthController authController = Get.find<AuthController>();
   final ApiService apiService = ApiService();
-  late Timer _timer; // สร้างตัวแปร Timer
-  UserModel? _userData; // เก็บข้อมูลผู้ใช้ในตัวแปร
+  late Timer _timer;
+  UserModel? _userData;
 
   @override
   void initState() {
     super.initState();
-
-    // ดึงข้อมูลผู้ใช้ครั้งแรก
     _fetchUserData();
 
-    // ตั้งค่า Timer เพื่อดึงข้อมูลทุกๆ 30 วินาที
     _timer = Timer.periodic(const Duration(seconds: 30), (Timer t) {
-      _fetchUserData(); // เรียกฟังก์ชันดึงข้อมูลใหม่
+      _fetchUserData();
     });
   }
 
   // ฟังก์ชันดึงข้อมูลผู้ใช้จาก API
   void _fetchUserData() async {
     try {
-      UserModel userData =
+      UserModel? userData =
           await apiService.getUser(authController.auth.currentUser!.uid);
       setState(() {
         _userData = userData;
@@ -44,10 +42,9 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ปิด Timer เมื่อออกจากหน้าเพื่อป้องกัน memory leak
   @override
   void dispose() {
-    _timer.cancel(); // ยกเลิกการทำงานของ Timer เมื่อหน้า HomePage ถูกปิด
+    _timer.cancel();
     super.dispose();
   }
 
@@ -73,11 +70,16 @@ class _HomePageState extends State<HomePage> {
                   Center(
                     child: Column(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 50,
-                          backgroundImage: NetworkImage(
-                            'https://lh3.googleusercontent.com/-IPUpAUT4ffs/AAAAAAAAAAI/AAAAAAAAAAA/ALKGfkll6lSLU4mfwJEvf3_O8njGL7tc9Q/photo.jpg?sz=46',
-                          ),
+                          backgroundImage: _userData!.profileImage != null
+                              ? CachedNetworkImageProvider(
+                                  '${_userData!.profileImage}')
+                              : null,
+                          child: _userData!.profileImage == null
+                              ? const Icon(Icons.person,
+                                  size: 50) // แสดง Icon ถ้าไม่มีรูปโปรไฟล์
+                              : null,
                         ),
                         const SizedBox(height: 5),
                         Text('@${_userData!.username}'),
@@ -101,11 +103,18 @@ class _HomePageState extends State<HomePage> {
                       Text('status: ${_userData!.status}'),
                       const SizedBox(height: 10),
                       Text('lastLoginAt: ${_userData!.lastLoginAt}'),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          Get.offAllNamed('/profile');
+                        },
+                        child: const Text('Next'),
+                      ),
                     ],
                   )
                 ],
               )
-            : const CircularProgressIndicator(), // แสดง Loading ขณะดึงข้อมูล
+            : const CircularProgressIndicator(),
       ),
     );
   }
