@@ -158,7 +158,7 @@ class _ManagePageState extends State<ManagePage> {
             },
           ),
           const SizedBox(height: 5),
-          const Center(child: Text("Version 0.1.16")),
+          const Center(child: Text("Version 0.1.36")),
         ],
       ),
       // Bottom Navigation Bar
