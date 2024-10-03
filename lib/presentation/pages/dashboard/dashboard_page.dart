@@ -1,10 +1,12 @@
+//lib/presentation/pages/dashboard_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 
-import 'package:kpopmerchapplication/presentation/pages/dashbaord/explore_page.dart';
-import 'package:kpopmerchapplication/presentation/pages/dashbaord/home_page.dart';
-import 'package:kpopmerchapplication/presentation/pages/dashbaord/manage_page.dart';
-import 'package:kpopmerchapplication/presentation/pages/dashbaord/notification_page.dart';
+import 'package:kpopmerchapplication/presentation/pages/dashboard/explore/explore_page.dart';
+import 'package:kpopmerchapplication/presentation/pages/dashboard/home/home_page.dart';
+import 'package:kpopmerchapplication/presentation/pages/dashboard/manage/manage_page.dart';
+import 'package:kpopmerchapplication/presentation/pages/dashboard/notification/notification_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -18,9 +20,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // List of pages to switch between
   final List<Widget> _pages = [
-    const HomePage(),
+    HomeScreen(),
     const ExplorePage(),
-    const NotificationPage(),
+    NotificationPage(),
     const ManagePage(),
   ];
 
@@ -34,8 +36,10 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: _pages[_selectedIndex], // Display the selected page
       bottomNavigationBar: SalomonBottomBar(
+        backgroundColor: Colors.white,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: [

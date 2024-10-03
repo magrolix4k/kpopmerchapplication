@@ -1,187 +1,256 @@
-import 'dart:io'; // สำหรับการจัดการไฟล์
-import 'package:firebase_storage/firebase_storage.dart'; // สำหรับ Firebase Storage
-import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:kpopmerchapplication/models/user_model.dart';
-import 'package:kpopmerchapplication/routes/app_routes.dart';
-import 'package:kpopmerchapplication/services/api_service.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:kpopmerchapplication/services/store_service/store_service.dart';
+
+import 'package:kpopmerchapplication/services/user_service/users_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthController extends GetxController {
   static AuthController instance = Get.find();
   FirebaseAuth auth = FirebaseAuth.instance;
   FirebaseStorage storage = FirebaseStorage.instance;
-  late Rx<User?> _user;
-  final ApiService apiService = ApiService();
+  final UserApiService apiService = UserApiService();
+  final StoreApiService storeApiService = StoreApiService();
+  final ImagePicker picker = ImagePicker();
 
-  // เก็บข้อมูลจากหลายหน้า
-  var uids = ''.obs;
+  Rx<User?> firebaseUser = Rx<User?>(null);
+
   var email = ''.obs;
-  var username = ''.obs;
   var password = ''.obs;
   var name = ''.obs;
+  var username = ''.obs;
   var profileImage = ''.obs;
   var bio = ''.obs;
-  var role = 'user'.obs;
 
   @override
-  void onReady() {
-    super.onReady();
-    _user = Rx<User?>(auth.currentUser);
-    _user.bindStream(auth.userChanges());
-    ever(_user, _initialScreen);
+  void onInit() {
+    super.onInit();
+
+    // ตรวจสอบสถานะผู้ใช้เมื่อเริ่มแอป
+    _loadUserFromPreferences();
+    _loadRoleFromPreferences();
+    getUserRole();
+    // ติดตามสถานะการเปลี่ยนแปลงของผู้ใช้
+    auth.authStateChanges().listen((User? user) {
+      if (user != null) {
+        firebaseUser.value = user;
+        _saveUserToPreferences(user); // บันทึกสถานะผู้ใช้
+        Get.offAllNamed('/dashboard');
+      } else {
+        Get.offAllNamed('/login');
+      }
+    });
   }
 
-  // ตรวจสอบว่าไปหน้าไหนเมื่อล็อกอินสำเร็จหรือออกจากระบบ
-  _initialScreen(User? user) {
-    if (user == null) {
-      Get.offAllNamed(Routes.login);
-    } else {
-      Get.offAllNamed(Routes.dashboard);
+  // โหลดข้อมูลผู้ใช้จาก SharedPreferences
+  Future<void> _loadUserFromPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString('userId');
+
+    if (userId != null) {
+      User? user = auth.currentUser;
+      if (user != null) {
+        firebaseUser.value = user;
+        Get.offAllNamed('/dashboard');
+      }
     }
   }
 
-  // ฟังก์ชันเลือกภาพจากแกลเลอรี
-  Future<void> pickImage() async {
-    final ImagePicker picker = ImagePicker();
+  // บันทึกข้อมูลผู้ใช้ใน SharedPreferences
+  Future<void> _saveUserToPreferences(User user) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userId', user.uid);
+  }
+
+  // บันทึกข้อมูล role ใน SharedPreferences
+  Future<void> _saveRoleToPreferences(String role) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userRole', role);
+  }
+
+  // ลบสถานะผู้ใช้จาก SharedPreferences เมื่อออกจากระบบ
+  Future<void> _clearUserFromPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId');
+    await prefs.remove('userRole');
+  }
+
+  // โหลดข้อมูล role จาก SharedPreferences
+  Future<String?> _loadRoleFromPreferences() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userRole');
+  }
+
+  Future<String?> getUserRole() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userRole');
+  }
+
+  // ฟังก์ชันออกจากระบบ
+  void signOut() async {
+    await auth.signOut();
+    firebaseUser.value = null;
+    _clearUserFromPreferences();
+  }
+
+  // ฟังก์ชันเลือกโปรไฟล์รูปภาพและครอบตัดรูป
+  Future<void> pickProfileImage() async {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
     if (image != null) {
-      profileImage.value = image.path; // เก็บ path ของรูป
+      // ครอบตัดรูปภาพที่เลือกโดยใช้ ImageCropper
+      CroppedFile? croppedImage =
+          await ImageCropper().cropImage(sourcePath: image.path, uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Cropper',
+          toolbarColor: Colors.blue,
+          toolbarWidgetColor: Colors.white,
+          lockAspectRatio: true,
+          aspectRatioPresets: [
+            CropAspectRatioPreset.original,
+            CropAspectRatioPreset.square,
+          ],
+        ),
+      ]);
+
+      // ถ้าผู้ใช้ครอบตัดรูปแล้ว ให้บันทึก path ของรูปครอบตัดนั้น
+      if (croppedImage != null) {
+        profileImage.value = croppedImage.path;
+      }
     }
   }
 
-  // ฟังก์ชันอัปโหลดรูปไปยัง Firebase Storage
+  // ฟังก์ชันอัปโหลดรูปโปรไฟล์ไปยัง Firebase Storage
   Future<String?> uploadProfileImage(String uid) async {
-    if (profileImage.value.isNotEmpty) {
+    if (profileImage.isNotEmpty) {
       try {
-        File file = File(profileImage.value);
-        String fileName = 'profile_images/$uid.jpg';
-
-        // อัปโหลดไฟล์ไปยัง Firebase Storage
-        UploadTask uploadTask = storage.ref(fileName).putFile(file);
-
-        // รอการอัปโหลดสำเร็จแล้วดึง URL ของรูปที่อัปโหลด
-        TaskSnapshot snapshot = await uploadTask;
-        String downloadUrl = await snapshot.ref.getDownloadURL();
-        return downloadUrl; // ส่งคืน URL ของรูป
+        final file = File(profileImage.value);
+        final ref = storage.ref().child('profile_images').child('$uid.jpg');
+        await ref.putFile(file);
+        return await ref.getDownloadURL();
       } catch (e) {
-        print("Error uploading image: $e");
+        print("Error uploading profile image: $e");
         return null;
       }
     }
     return null;
   }
 
-  // ฟังก์ชันลงทะเบียนผู้ใช้ใหม่
+  // ฟังก์ชันลงทะเบียน
   Future<void> register() async {
     try {
       UserCredential userCredential = await auth.createUserWithEmailAndPassword(
           email: email.value, password: password.value);
-      User? user = userCredential.user;
 
+      User? user = userCredential.user;
       if (user != null) {
         String? profileImageUrl = await uploadProfileImage(user.uid);
-        uids.value = user.uid;
 
-        UserModel newUser = UserModel(
-          uid: user.uid,
-          email: user.email!,
-          name: name.value,
-          username: username.value,
-          profileImage: profileImageUrl,
-          bio: bio.value,
-          role: role.value,
-        );
+        // ส่งข้อมูลผู้ใช้ไปยัง MySQL
+        await apiService.createUser({
+          'uid': user.uid,
+          'email': user.email!,
+          'username': username.value,
+          'name': name.value,
+          'profile_image': profileImageUrl,
+          'bio': bio.value,
+        });
 
-        await apiService.createUser(newUser);
-        await apiService.updateLastLogin(user.uid);
+        firebaseUser.value = user;
       }
     } catch (e) {
-      Get.rawSnackbar(title: "Registration Error", message: e.toString());
-      print("Registration Error ${e.toString()}");
+      Get.snackbar("Registration Error", e.toString());
     }
   }
 
-  // ฟังก์ชันล็อกอินและอัปเดต last_login_at ใน MySQL
-  void login(String email, String password) async {
+  Future<void> login() async {
     try {
-      // ล็อกอินกับ Firebase Authentication
       UserCredential userCredential = await auth.signInWithEmailAndPassword(
-          email: email, password: password);
+          email: email.value, password: password.value);
+
       User? user = userCredential.user;
+      if (user != null) {
+        // ดึงข้อมูล role จาก MySQL โดยใช้ uid ของผู้ใช้ที่เข้าสู่ระบบ
+        var userData = await apiService.getUserById(user.uid);
+        String role = userData['role']; // สมมติว่าข้อมูล role อยู่ใน response
+        print("stay on role $role");
+
+        // บันทึก role ของผู้ใช้เพื่อใช้งานในแอป
+        await _saveRoleToPreferences(role);
+
+        firebaseUser.value = user;
+      }
+    } catch (e) {
+      Get.snackbar("Login Error", e.toString());
+    }
+  }
+
+  // ฟังก์ชันรีเซ็ตรหัสผ่าน
+  Future<void> resetPassword() async {
+    try {
+      await auth.sendPasswordResetEmail(email: email.value);
+      Get.snackbar("Success", "Password reset link sent to ${email.value}");
+    } catch (e) {
+      Get.snackbar("Error", "Failed to send reset link. Please try again.");
+    }
+  }
+
+  // ฟังก์ชันเชื่อมบัญชี Twitter กับผู้ใช้ปัจจุบัน
+  Future<void> linkWithTwitter() async {
+    try {
+      // สร้าง TwitterAuthProvider
+      final TwitterAuthProvider twitterProvider = TwitterAuthProvider();
+
+      // ตรวจสอบว่ามีผู้ใช้ล็อกอินอยู่หรือไม่
+      final user = auth.currentUser;
 
       if (user != null) {
-        // อัปเดต last_login_at ใน MySQL ผ่าน API
-        await apiService.updateLastLogin(user.uid);
+        // เชื่อมบัญชี Twitter กับผู้ใช้ปัจจุบันใน Android
+        final UserCredential userCredential =
+            await user.linkWithProvider(twitterProvider);
+        // ดึงข้อมูลจาก Twitter
+        final twitterProfile = userCredential.additionalUserInfo?.profile;
+        final String twitterName = twitterProfile?['name'];
+        final String twitterUsername = twitterProfile?['screen_name'];
+        final String twitterProfileImage =
+            twitterProfile?['profile_image_url_https'];
+        final String twitterBio = twitterProfile?['description'];
+        final String twitterId = twitterProfile?['id_str'];
+
+        // เรียกใช้ createStore เพื่อสร้างร้านค้าใหม่จากข้อมูล Twitter
+        await storeApiService.createStore({
+          'owner_id': user.uid,
+          'sid': twitterId,
+          'username': twitterUsername,
+          'name': twitterName,
+          'profile_image': twitterProfileImage,
+          'bio': twitterBio,
+        });
+
+        Get.snackbar(
+            "Success", "Successfully linked Twitter and created store");
       }
     } catch (e) {
-      Get.rawSnackbar(title: "Login Error", message: e.toString());
-      print("Login Error ${e.toString()}");
+      print("Error linking with Twitter: $e");
+      Get.snackbar("Error", "Failed to link Twitter");
     }
   }
 
-  // ฟังก์ชันเชื่อมต่อ Twitter ผ่าน Firebase
-  Future<UserCredential?> signInWithTwitter() async {
+  // ฟังก์ชันยกเลิกการเชื่อมบัญชีกับ provider (เช่น Twitter หรือ Google)
+  Future<void> unlinkProvider(String providerId) async {
     try {
-      // สร้าง provider สำหรับ Twitter
-      TwitterAuthProvider twitterProvider = TwitterAuthProvider();
-
-      // ทำการล็อกอินผ่าน Twitter
-      return await auth.signInWithProvider(twitterProvider);
-    } catch (e) {
-      Get.rawSnackbar(title: "Twitter Login Error", message: e.toString());
-      print("Twitter Login Error ${e.toString()}");
-      return null;
-    }
-  }
-
-  // ฟังก์ชันสร้างข้อมูลร้านค้าใน MySQL
-  Future<void> registerStore(UserCredential twitterCredential) async {
-    final twitterProfile = twitterCredential.additionalUserInfo?.profile;
-    final String? twitterName = twitterProfile?['name'];
-    final String? twitterUsername = twitterProfile?['screen_name'];
-    final String? twitterProfileImage =
-        twitterProfile?['profile_image_url_https'];
-    final String? twitterBio = twitterProfile?['description'];
-    final String? twitterId = twitterProfile?['id_str'];
-
-    // บันทึกข้อมูลร้านค้าลงในฐานข้อมูล MySQL ผ่าน API
-    try {
-      await apiService.createStore(
-        ownerId: uids.value,
-        sid: twitterId!,
-        name: twitterName!,
-        username: twitterUsername!,
-        profileImage: twitterProfileImage!,
-        bio: twitterBio ?? 'Bio',
-      );
-    } catch (e) {
-      Get.rawSnackbar(title: "Store Registration Error", message: e.toString());
-      print("registerStore Registration Error ${e.toString()}");
-    }
-  }
-
-  // ฟังก์ชันสำหรับสร้างร้านค้า
-  Future<void> createStore() async {
-    try {
-      // เชื่อมต่อบัญชี Twitter เพื่อสร้างร้านค้า
-      UserCredential? twitterCredential = await signInWithTwitter();
-
-      if (twitterCredential != null) {
-        await registerStore(twitterCredential);
-
-        Get.rawSnackbar(
-            title: "Success", message: "Store created successfully!");
+      final user = auth.currentUser;
+      if (user != null) {
+        await user.unlink(providerId); // ยกเลิกการเชื่อมกับ provider ที่ระบุ
+        Get.snackbar("Success", "Unlinked $providerId successfully");
       }
     } catch (e) {
-      Get.rawSnackbar(title: "CreateStore Error", message: e.toString());
-      print("createStore Registration Error ${e.toString()}");
+      print("Error unlinking provider: $e");
+      Get.snackbar("Error", "Failed to unlink $providerId");
     }
-  }
-
-  // ฟังก์ชันออกจากระบบ
-  void signOut() async {
-    await auth.signOut();
   }
 }

@@ -1,30 +1,32 @@
+//lib/presentation/routes/app_routes.dart
+
 import 'package:get/get.dart';
-import 'package:kpopmerchapplication/presentation/pages/dashbaord/home_page.dart';
 import 'package:kpopmerchapplication/presentation/pages/auth/login/login_page.dart';
-import 'package:kpopmerchapplication/presentation/pages/dashbaord/sitepage/profile_page.dart';
-import 'package:kpopmerchapplication/presentation/pages/auth/registration/craete_store_page.dart';
 import 'package:kpopmerchapplication/presentation/pages/auth/registration/register_email_page.dart';
-import 'package:kpopmerchapplication/presentation/pages/dashbaord/sitepage/setting_page.dart';
-import 'package:kpopmerchapplication/presentation/pages/dashboard_page.dart';
+import 'package:kpopmerchapplication/presentation/pages/auth/registration/register_profile.dart';
+import 'package:kpopmerchapplication/presentation/pages/auth/reset_pwd/forgot_pwd.dart';
+import 'package:kpopmerchapplication/presentation/pages/dashboard/dashboard_page.dart';
+import 'package:kpopmerchapplication/presentation/pages/dashboard/home/product_screen.dart';
+import 'package:kpopmerchapplication/presentation/pages/dashboard/notification/store_screen.dart';
 
 class Routes {
   static const login = '/login';
   static const register = '/register';
-  static const craeteStore = '/createStore';
-  static const home = '/home';
   static const dashboard = '/dashboard';
-  static const profile = '/profile';
-  static const settings = '/settings';
+  static const store = '/store';
+  static const products = '/products';
+  static const addprofile = '/addprofile';
+  static const password = '/password';
 }
 
 class AppPages {
   static final pages = [
-    GetPage(name: Routes.login, page: () => LoginPage()),
-    GetPage(name: Routes.register, page: () => RegisterEmailPage()),
-    GetPage(name: Routes.craeteStore, page: () => CreateStorePage()),
-    GetPage(name: Routes.home, page: () => const HomePage()),
-    GetPage(name: Routes.profile, page: () => const ProfilePage()),
+    GetPage(name: Routes.login, page: () => LoginScreen()),
+    GetPage(name: Routes.register, page: () => const RegisterScreen()),
+    GetPage(name: Routes.store, page: () => StoreScreen()),
+    GetPage(name: Routes.products, page: () => ProductListScreen()),
+    GetPage(name: Routes.addprofile, page: () => const RegisterProfile()),
+    GetPage(name: Routes.password, page: () => ForgotPasswordScreen()),
     GetPage(name: Routes.dashboard, page: () => const DashboardPage()),
-    GetPage(name: Routes.settings, page: () => const SettingPage()),
   ];
 }

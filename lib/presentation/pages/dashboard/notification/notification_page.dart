@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:kpopmerchapplication/presentation/controllers/auth_controller.dart';
+import 'package:kpopmerchapplication/presentation/controllers/store_controller.dart';
 
-class NotificationPage extends StatefulWidget {
-  const NotificationPage({super.key});
+class NotificationPage extends StatelessWidget {
+  final AuthController authController = Get.find<AuthController>();
+  final StoreController storeController = Get.put(StoreController());
 
-  @override
-  State<NotificationPage> createState() => _NotificationPageState();
-}
+  NotificationPage({super.key});
 
-class _NotificationPageState extends State<NotificationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -50,7 +53,6 @@ class _NotificationPageState extends State<NotificationPage> {
             },
           ),
           const SizedBox(height: 20),
-
           ListTile(
             leading: CircleAvatar(
               radius: 30, // ปรับขนาดของ CircleAvatar
@@ -82,47 +84,38 @@ class _NotificationPageState extends State<NotificationPage> {
             },
           ),
           const Divider(height: 32),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(left: 20.0),
-                child: Text(
-                  'Discover creators',
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _buildCreatorTile(
-                imageUrl:
-                    'https://via.placeholder.com/150', // รูปตัวอย่างของครีเอเตอร์
-                creatorName: 'กับข้าวบ้านๆ',
-                description: 'ชอบทำอาหารง่ายๆ ท่านเอง ลงคลิปใหม่',
-                likes: 28480,
-              ),
-              _buildCreatorTile(
-                imageUrl:
-                    'https://via.placeholder.com/150', // รูปตัวอย่างของครีเอเตอร์
-                creatorName: 'ดูดวง | พามู',
-                description: 'ดูดวง เบอร์มงคล ฝากถามได้เลย',
-                likes: 27137,
-              ),
-              _buildCreatorTile(
-                imageUrl:
-                    'https://via.placeholder.com/150', // รูปตัวอย่างของครีเอเตอร์
-                creatorName: 'ลดไขมัน No Gym',
-                description: 'ที่อยากสุขภาพดีไม่ต้องเข้ายิม',
-                likes: 23561,
-              ),
-              _buildCreatorTile(
-                imageUrl:
-                    'https://via.placeholder.com/150', // รูปตัวอย่างของครีเอเตอร์
-                creatorName: 'ความลับนางฟ้า',
-                description: 'รีวิวตามใจ อะไรทำแล้วสวยชื่นใจ',
-                likes: 6623,
-              ),
-            ],
-          )
+          // ใช้ข้อมูลจาก storeController เพื่อสร้างรายการร้านค้า
+          Obx(() {
+            if (storeController.stores.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            } else {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 20.0),
+                    child: Text(
+                      'Discover Sellers',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // สร้างรายการร้านค้าจากข้อมูลที่ดึงมา
+                  ...storeController.stores.map((store) {
+                    return _buildCreatorTile(
+                      sid: store['owner_id'],
+                      profileImage: store['profile_image'] ??
+                          'https://via.placeholder.com/150', // รูปโปรไฟล์
+                      name: store['name'] ?? 'Unknown Store',
+                      username: store['username'] ?? 'No description',
+                      follower: store['followers'] ?? 0, // จำนวนผู้ติดตาม
+                    );
+                  }).toList(),
+                ],
+              );
+            }
+          }),
         ],
       ),
     );
@@ -130,18 +123,22 @@ class _NotificationPageState extends State<NotificationPage> {
 
   // ฟังก์ชันสร้างรายการ Creator Tile
   Widget _buildCreatorTile({
-    required String imageUrl,
-    required String creatorName,
-    required String description,
-    required int likes,
+    required String sid,
+    required String profileImage,
+    required String name,
+    required String username,
+    required int follower,
   }) {
     return ListTile(
+      onTap: () {
+        Get.toNamed('/storeprofile?sid=$sid');
+      },
       leading: CircleAvatar(
         radius: 30, // ปรับขนาดของ CircleAvatar
-        backgroundImage: NetworkImage(imageUrl),
+        backgroundImage: NetworkImage(profileImage),
       ),
-      title: Text(creatorName),
-      subtitle: Text('$description\nถูกใจ $likes ครั้ง'),
+      title: Text(name),
+      subtitle: Text('@$username\n $follower Follows'),
       trailing: ElevatedButton(
         onPressed: () {
           // ฟังก์ชันเมื่อกดปุ่มติดตาม
